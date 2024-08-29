@@ -38,14 +38,8 @@ def ssr(params, y0, t, V_data, T_data):
 
     return T_sum + V_sum
 
-'''def calc_residuals(T_data, T_pred):
-    n = len(T_data)
-    residuals = np.zeros(n)
-    for i in range(n):
-        residuals[i] = T_pred[i] - T_data[i]
-    return residuals'''
 
-def conf_interval(params, index):
+'''def conf_interval(params, index):
     s = sorted(params, key=lambda tup: tup[index])
     return s[1][index], s[-2][index]
 
@@ -87,14 +81,14 @@ def boot(V_data, T_data, V_pred, T_pred, initial_guess, y0, t):
     print(f"delta: {conf_interval(params, 3)}")
     print(f"p: {conf_interval(params, 4)}")
     print(f"c: {conf_interval(params, 5)}")
-    print(f"K: {conf_interval(params, 6)}")
+    print(f"K: {conf_interval(params, 6)}")'''
 
 
 
 
 def main():
-    virus = np.loadtxt('data/virus.dat')
-    cells = np.loadtxt('data/cells.dat')
+    virus = np.loadtxt('data/virus_purple.dat')
+    cells = np.loadtxt('data/cells_purple.dat')
     V_data = virus[:, 1]
     T_data = cells[:, 1]
     t = virus[:, 0]
@@ -173,8 +167,8 @@ def main():
     print(T_pred)
     print(V_pred)
     '''
-    print(V_data)
-    boot(V_data, T_data, V_pred, T_pred, initial_guess, y0, t)
+    #print(V_data)
+    #boot(V_data, T_data, V_pred, T_pred, initial_guess, y0, t)
     
 
 if __name__ == "__main__":
