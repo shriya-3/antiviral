@@ -3,15 +3,20 @@ from scipy.integrate import odeint
 from scipy.optimize import minimize
 import math
 import matplotlib.pyplot as plt
-import random
-
+import pandas as pd
 
 
 def model(y, t, params):
-    T, E, I, V = y
-    lamb, beta, k, delta, p, c, K = params
+    #K= 4767840.060099503 #PURPLE
+    #K = 3123092.42921152 #GREEN
+    #K = 4502249.959989419 #RED
+    K = 5142701.720558477 # YELLOW
+    #K = 5972735.535321577 #GREY
 
-    dTdt = lamb * T * (1-T/K) - beta * T * V
+    T, E, I, V = y
+    lamb, beta, k, delta, p, c  = params
+
+    dTdt = lamb * T * (1 - T / K) - beta * T * V
     dEdt = beta * T * V - k * E
     dIdt = k * E - delta * I
     dVdt = p * I - c * V
@@ -19,161 +24,198 @@ def model(y, t, params):
     return np.array([dTdt, dEdt, dIdt, dVdt])
 
 
+def ssr_basic(pred, true):
+    """Compute the sum of squared residuals between predicted and true values."""
+    return np.sum((np.log10(pred) - np.log10(true))**2)
+
 def ssr(params, y0, t, V_data, T_data):
     params = 10**params
     result = odeint(model, y0, t, args=(params,))
 
-    T_pred = result[:, 0]
-    V_pred = result[:, 3]
+    T_pred_ssr = result[:, 0]
+    E_pred_ssr = result[:, 1]
+    I_pred_ssr = result[:, 2]
+    V_pred_ssr = result[:, 3]
+
     
     T_sum, V_sum = 0, 0
-    for i in range(len(T_pred)):
-        T_sum += (np.log10(T_data[i]) - np.log10(T_pred[i])) ** 2
-        #t_shuffled
-    
-    for i in range(len(V_pred)):
-        V_sum += (np.log10(V_data[i]) - np.log10(V_pred[i])) ** 2
+    for i in range(len(T_pred_ssr)):
+        #T_sum += (np.log10(T_data[i]) - (np.log10((T_pred_ssr[i]) + (E_pred_ssr[i]) + (I_pred_ssr[i])))) ** 2
+        T_sum += (np.log10(T_data[i]) - (np.log10(T_pred_ssr[i]))) ** 2
+        #print(T_sum)
 
-    #print(V_pred)
+    for i in range(len(V_pred_ssr)):
+        V_sum += (np.log10(V_data[i]) - np.log10(V_pred_ssr[i])) ** 2
 
     return T_sum + V_sum
 
-
-'''def conf_interval(params, index):
-    s = sorted(params, key=lambda tup: tup[index])
-    return s[1][index], s[-2][index]
-
-def calc_residuals(V_data, T_data, V_pred, T_pred):
-    n = len(V_data) + len(T_data)
-    residuals = np.zeros(n)
-    for i in range(len(V_data)):
-        residuals[i] = np.log10(V_pred[i]) - np.log10(V_data[i])
-    for j in range (len(T_data)):
-        residuals += [np.log10(T_pred[j]) - np.log10(T_data[j])]
-    return residuals
-
-def boot(V_data, T_data, V_pred, T_pred, initial_guess, y0, t):
-    n = len(V_data) + len(T_data)
-    residuals = calc_residuals(V_data, T_data, V_pred, T_pred)
+def ssr_for_mcmc(params, y0, t, V_data, T_data):
+    """Compute the SSR for a set of MCMC parameters."""
+    result = odeint(model, y0, t, args=(params,))
+    T_pred = result[:, 0]
+    V_pred = result[:, 3]
     
-    params = []
-    #1000
-    for i in range(100):
-        V_sample = np.zeros(len(V_data))
-        T_sample = np.zeros(len(T_data))
-        random.shuffle(residuals)
-        
-        c = 0
-        for j, k in zip(V_pred, residuals[: len(V_pred)]):
-            V_sample[c] = np.log10(j) + k
-            c += 1
-        d = 0
-        for j, k in zip(T_pred, residuals[len(V_pred) :]):
-            T_sample[d] = np.log10(j) + k
-        
-        result = minimize(ssr, initial_guess, args=(y0, t, V_sample, T_sample), method="Nelder-Mead")
-        estimated_params = 10**result.x
-        params.append(estimated_params)
-
-    print(f"lamb: {conf_interval(params, 0)}")
-    print(f"beta: {conf_interval(params, 1)}")
-    print(f"k: {conf_interval(params, 2)}")
-    print(f"delta: {conf_interval(params, 3)}")
-    print(f"p: {conf_interval(params, 4)}")
-    print(f"c: {conf_interval(params, 5)}")
-    print(f"K: {conf_interval(params, 6)}")'''
-
-
+    T_ssr = ssr_basic(T_pred, T_data)
+    V_ssr = ssr_basic(V_pred, V_data)
+    
+    return T_ssr + V_ssr
 
 
 def main():
-    virus = np.loadtxt('data/virus_purple.dat')
-    cells = np.loadtxt('data/cells_purple.dat')
+    #virus = np.loadtxt('data/virus_purple.dat')
+    #cells = np.loadtxt('data/cells_purple.dat')
+
+    #virus = np.loadtxt('data/virus_green.dat')
+    #cells = np.loadtxt('data/cells_green2.dat')
+
+    #virus = np.loadtxt('data/virus_red.dat')
+    #cells = np.loadtxt('data/cells_red2.dat')
+
+    virus = np.loadtxt('data/virus_yellow.dat')
+    cells = np.loadtxt('data/cells_yellow2.dat')
+
+    #virus = np.loadtxt('data/virus_grey.dat')
+    #cells = np.loadtxt('data/cells_grey2.dat')
+
     V_data = virus[:, 1]
     T_data = cells[:, 1]
     t = virus[:, 0]
 
-    y0 = [10000000, 0, 0, 1] 
-    #initial_guess = np.log10([0.6, 0.00001, 1, 1, 0.1, 1, 10000000])
-
-    #YELLOW GUESS
-    #initial_guess = np.log10([1.24150227e-25, 1.37693985e-06, 4.08614420e+01, 1.39166123e+02, 4.88445968e+01, 4.19605737e-02, 1.68056424e-18])
-    #initial_guess = np.log10([1.33811643e-25, 1.51975522e-06, 2.38853749e+02, 1.65858268e+02, 4.75308073e+01, 2.77989318e-01, 2.87466633e-18]) #BEST
-    #initial_guess = np.log10([1.74745889e-25, 1.61921944e-06, 2.41197783e+02, 1.70484991e+02, 4.87953217e+01, 2.61049431e-01, 3.37173075e-18])
-
-    #GREEN GUESS
-    #initial_guess = np.log10([2.43911482e-03, 5.65968210e-81, 8.49817074e-01, 1.11561814e+01, 5.75256208e+75, 7.72454120e-01, 4.96999578e+03])
-    #initial_guess = np.log10([7.45030763e-05, 6.67527894e-78, 1.07337535e+00, 5.94586265e+04, 8.61326107e+77, 6.52842748e+01, 2.67172008e+02]) #BEST??
-    #initial_guess = np.log10([4.59928148e-003, 1.53196095e-313, 1.31504358e+000, 6.88946981e+000, 1.79768995e+308, 9.96115810e-001, 7.69522115e+003])
-    #initial_guess = np.log10([3.10640874e-036, 3.52172901e-303, 4.65716190e+006, 1.89411927e+011, 7.42074476e+307, 9.42816370e-001, 9.69921490e-030])
-
-    #RED GUESS
-    #initial_guess = np.log10([5.27414353e-01, 1.37599351e-02, 1.00271020e+00, 1.24340295e+00, 6.43668547e-05, 7.50468323e-01, 4.96716462e+06])
-    #initial_guess = np.log10([1.36703974e-01, 2.20334893e-05, 2.15432783e+00, 2.89684226e+18, 3.12119482e+18, 8.89698760e+01, 8.02762543e+06]) #BEST
-
-    #RED GUESS NEW
-    #initial_guess = np.log10([5.17168000e-01, 1.28618844e-02, 1.04391007e+00, 1.03360140e+00, 7.48091293e-05, 9.20837923e-01, 4.61340647e+06])
-    #initial_guess = np.log10([1.30662809e-01, 1.60994300e-05, 1.99801204e+01, 3.95619435e+00, 1.63277801e+00, 2.67318059e+01, 5.40522939e+06])
-
-    #GREY GUESS
-    #initial_guess = np.log10([4.50923909e-87, 6.25940011e-06, 2.29761332e+01, 6.94252961e+01, 7.76005238e+00, 1.23334214e-04, 3.46906333e-80])
-    #initial_guess = np.log10([4.60953276e-87, 5.72620522e-06, 4.46627314e+01, 7.14508556e+01, 7.71044398e+00, 1.82283903e-01, 5.30837209e-80]) #BEST
-
-    #GREY GUESS (NEW)
-    #initial_guess = np.log10([6.47942054e-100, 6.10519210e-006, 7.96510066e+001, 1.55192834e-005, 1.38910662e+001, 8.05444176e+001, 3.31034972e-093])
-    #initial_guess = np.log10([6.18374636e-100, 6.31615255e-006, 8.00664875e+001, 1.53163810e-005, 1.40496251e+001, 8.09656321e+001, 3.44884042e-093])
+    #PURPLE DATASET
+    #y0 = [4767840.060099503, 0, 0, 1]  # Initial conditions for purple dataset
+    #initial_guess = np.log10([3.34131606e-03, 7.97858286e-07, 1.61285348e+02, 5.17873197e+00, 
+                               #6.14732745e+01, 2.75111791e+01, 3.44613946e+05])   #Purple
+    #initial_guess = np.log10([7.24985555e-01, 2.50715804e-08, 2.61706640e+01, 5.24540588e+01, 8.67834551e+03, 1.44740750e+01])
+    #initial_guess = np.log10([5.76489543e-01, 1.00211170e-04, 1.59401898e+02, 2.44051237e+02, 1.70054323e+00, 1.70663815e+00])
+    #initial_guess = np.log10([5.18722676e-01, 8.16929473e-05, 2.72999599e+12, 2.55144891e+02, 2.38201727e+00, 2.03015420e+00])
+    #initial_guess = np.log10([5.08695517e-01, 7.75800234e-05, 5.21452736e+11, 2.90082169e+02, 2.92194289e+00, 2.12307842e+00])
+    #initial_guess = np.log10([5.08695517e-01, 7.75800234e-07, 5.21452736e+11, 2.90082169e+02, 2.92194289e+00, 2.12307842e+00])
+    #initial_guess = np.log10([7.17316553e-01, 3.36823860e-04, 7.83678424e-01, 2.00291307e+00, 7.61300436e-03, 8.72944403e-01])
     
-    # PURPLE GUESS
-    initial_guess = np.log10([7.17316553e-01, 3.36823860e-04, 7.83678424e-01, 2.00291307e+00, 7.61300436e-03, 8.72944403e-01, 4.52239206e+06]) #
-    #initial_guess = np.log10([1.02605046e-16, 1.20989507e-06, 8.49060327e+10, 2.99309184e+01, 1.07597258e+01, 2.60597208e+00, 2.09812514e+01])
-    #initial_guess  = np.log10([3.66105728e-08, 1.53192161e-06, 7.26572130e+10, 3.08258276e+01, 1.12312573e+01, 2.95106325e+00, 6.73958104e+00])
-    #initial_guess = np.log10([5.41443456e-09, 3.01249721e-07, 4.27332874e+09, 4.41801056e+01, 1.30759750e+02, 6.02545079e+00, 1.32409159e+00])
-    #initial_guess = np.log10([9.67202013e-09, 1.60039525e-07, 1.43015997e+01, 1.04657423e+01, 1.10891046e+02, 7.82884993e+00, 8.08335542e-01]) #BEST
-    #initial_guess = [6.00002452e-01, 1.01219057e-04, 1.00000326e+00, 1.00000282e+00, 9.99996157e-02, 9.99993756e-01, 1.00030762e+07]
-    #initial_guess = [-4.39625096e-02, 2.46320189e-06, 3.57787192e+01, 3.01255438e+01, 5.67911660e+00, 2.16094191e+00, -1.53964319e+09]
-    #initial_guess = [-5.09052792e-02, 1.30277576e-06, 3.32721815e+01, 3.55089210e+01, 1.45941414e+01, 2.61455664e+00, -4.73368976e+09]
-    #initial_guess = np.log10([-5.87414646e-02, 7.76668651e-07, 1.21251373e+02,  3.09354163e+01, 2.19928930e+01, 2.72203500e+00, -1.05647347e+11])
-    #lamb, beta, k, delta, p, c, K = params
+    #initial_guess  = np.log10([9.74976275e-02, 2.13536947e-06, 9.34478242e+01, 3.13379594e+01, 9.38060100e+00, 1.29855834e+00])
+    #initial_guess = np.log10([9.74976275e-02, 2.13536947e-06, 9.34478242e+01, 3.13379594e+01, 9.92056554e+00, 1.30706746e+00]) #MOST RECENT
+
+    #GREEN DATASET
+    #y0 = [3123092.42921152, 0, 0, 1]
+    #initial_guess = np.log10([7.45030763e-05, 6.67527894e-78, 1.07337535e+00, 5.94586265e+04, 8.61326107e+77, 6.52842748e+01])
+    #initial_guess = np.log10([3.70953349e-14, 1.45018186e-01, 1.36542113e+00, 1.81089115e+05, 2.22640356e-08, 1.42935715e-07])
+    #initial_guess = np.log10([2.67887319e-13, 1.45855792e-01, 2.06997619e+00, 2.98439478e+06, 5.68800150e+00, 2.11636568e-01])
+    #initial_guess = np.log10([2.28997907e-01, 3.33826044e-05, 5.49055206e+00, 2.75346933e+02, 1.74508957e+01, 1.67540179e+00])
+    #initial_guess = np.log10([2.28996755e-01, 3.33833763e-05, 5.49056759e+00, 2.75241904e+02, 1.74436279e+01, 1.67540367e+00]) #MOST RECENT
+
+    #RED DATASET
+    #y0 = [4502249.959989419, 0, 0, 1]
+    #initial_guess = np.log10([1.36703974e-01, 2.20334893e-05, 2.15432783e+00, 2.89684226e+18, 3.12119482e+18, 8.89698760e+01])
+    #initial_guess = np.log10([1.22760402e-01, 9.85543908e-06, 3.20460729e+00, 2.14665969e+17, 4.29331728e+17, 4.33646054e+01])
+    #initial_guess = np.log10([1.15198344e-01, 1.18099001e-05, 3.34894348e+00, 2.75255359e+17, 3.53503799e+17, 3.48296812e+01])
+    #initial_guess = np.log10([5.27414353e-01, 1.37599351e-02, 1.00271020e+00, 1.24340295e+00, 6.43668547e-05, 7.50468323e-01])
+    
+    #initial_guess = np.log10([1.00879387e-01, 1.49584807e-05, 2.34061063e+03,	2.00029305e+01,	2.82975144e+00,	6.00281280e+00]) # MOST RECENT
+
+    #YELLOW DATASET
+    y0 = [5142701.720558477, 0, 0, 1]
+    #initial_guess = np.log10([1.33811643e-3, 1.51975522e-06, 2.38853749e+02, 1.65858268e+02, 4.75308073e+01, 2.77989318e-01])
+    #initial_guess = np.log10([2.15757047e-10, 4.17204494e-10, 9.27997087e-01, 4.29260067e+02, 8.63388019e+07, 4.57617113e+01])
+    #initial_guess = np.log10([1.00879387e-01, 1.49584807e-05, 2.34061063e+03,	2.00029305e+01,	2.82975144e+00,	6.00281280e+00])
+    #initial_guess = np.log10([5.27414353e-01, 1.37599351e-02, 1.00271020e+00, 1.24340295e+00, 6.43668547e-05, 7.50468323e-01])
+    #initial_guess = np.log10([1.53601571e-02, 2.41945152e-06, 8.33933957e+01, 3.71390854e+00, 2.05764514e+00, 5.71621797e-01]) #ok
+    initial_guess = np.log10([3.47942871e-01, 2.87270668e-06, 1.03655311e+1, 2.54726019e+01, 4.24845402e+00, 5.34303464e-01]) #last used
+    #initial_guess = np.log10([3.47942871e-01, 2.87270668e-06, 1.03655311e+11, 2.54726019e+01, 4.24845402e+00, 5.34303464e-01])
+    #initial_guess = np.log10([1.48251874e-01, 1.84039128e-06, 3.42223960e+07, 1.26325461e+08, 3.18247380e+07, 5.77409907e-01])
+    #initial_guess = np.log10([1.28412369e-03, 1.38021791e-06, 2.71869278e+02, 1.57844300e+02, 4.43770414e+01, 2.72085443e-01])
+
+    #GREY DATASET
+    #y0 = [5972735.535321577, 0, 0, 1]
+    #initial_guess = np.log10([9.74976275e-02, 2.13536947e-06, 9.34478242e+01, 3.13379594e+01, 9.92056554e+00, 1.30706746e+00])
+    #initial_guess = np.log10([6.41622613e-02, 2.14293620e-06, 1.10951244e+02, 3.18296531e+01, 1.04259314e+01, 1.26635932e+00])
+    #initial_guess = np.log10([6.52013669e-02, 2.13584266e-06, 1.28425088e+02, 3.41105979e+01, 1.10587889e+01, 1.25955490e+00])
+    #initial_guess = np.log10([2.28996755e-01, 3.33833763e-05, 5.49056759e+00, 2.75241904e+02, 1.74436279e+01, 1.67540367e+00])
+    
+    #initial_guess = np.log10([2.36379119e-01, 5.37849597e-06, 2.90929667e+00, 2.99263225e+02, 6.13611138e+01, 1.42072123e+00])
+    #initial_guess = np.log10([3.47942871e-01, 2.87270668e-06, 1.03655311e+1, 2.54726019e+01, 4.24845402e+00, 5.34303464e-01])
+    #initial_guess = np.log10([5.65271052e-01, 9.70303786e-06, 9.72892766e+01, 2.82402642e+02, 1.45084101e+01, 5.60841578e-01]) # last used
 
     result = minimize(ssr, initial_guess, args=(y0, t, V_data, T_data), method="Nelder-Mead")
     estimated_params = 10**result.x
-    #plug in params
-    print("Estimated parameters: ", estimated_params)
-    print(result.fun)
-
-    #model with estimated parameters
-    result = odeint(model, y0, t, args=(estimated_params,))
+    print(estimated_params)
+   
+    t_new = np.linspace(0, 22, 100)
+    #t_new = np.linspace(0, 12, 100) #GREY
+    result = odeint(model, y0, t_new, args=(estimated_params,))
     T_pred = result[:, 0]
     V_pred = result[:, 3]
 
-    #plt.figure(figsize=(0.5, 100))
-    '''
+    
+    # Load MCMC parameter samples
+    #params_df = pd.read_csv('format_green_Kfixed.csv') #GREEN
+    #params_df = pd.read_csv('format_purple_Kfixed1_new.csv') #PURPLE
+    #params_df = pd.read_csv('format_red_Kfixed1_new.csv') #RED
+    params_df = pd.read_csv('format_yellow_Kfixed2_new.csv') #YELLOW
+    #params_df = pd.read_csv('format_grey_Kfixed1_new.csv') #GREY
+
+    # Arrays to store predictions from all samples
+    T_preds_all = []
+    V_preds_all = []
+    ssr_values = []
+
+    
+    for _, row in params_df.iloc[:1000].iterrows():
+        mcmc_params = row.values[:-1]
+        result = odeint(model, y0, t_new, args=(10**mcmc_params,))
+        T_preds_all.append(result[:, 0])  
+        V_preds_all.append(result[:, 3])
+        
+        # Compute SSR for each MCMC sample
+        T_ssr = ssr_basic(result[:, 0], T_pred)
+        V_ssr = ssr_basic(result[:, 3], V_pred)
+        ssr_values.append(T_ssr + V_ssr)
+
+    T_preds_all = np.array(T_preds_all)
+    V_preds_all = np.array(V_preds_all)
+    ssr_values = np.array(ssr_values)
+
+    # Print SSR values to debug
+    #print("SSR values: ", ssr_values)
+    
+    # Check if any values are below the threshold
+    #print("Number of MCMC samples below threshold: ", np.sum(ssr_values < 10))
+
+    # Define a fixed SSR threshold (adjust as necessary)
+    #ssr_threshold = 15  # Use a fixed threshold for testing
+
+    # Plot the MCMC sample lines that are reasonably close to the original predictions
     plt.figure(figsize=(12, 8))
+    
+    sample_count = 0
+    for i in range(T_preds_all.shape[0]):
+        #if ssr_values[i] < ssr_threshold:
+            plt.plot(t_new, T_preds_all[i], color='blue', alpha=0.1, linewidth=0.1)
+            plt.plot(t_new, V_preds_all[i], color='red', alpha=0.1, linewidth=0.1)
+            sample_count += 1
+    #print(f"Number of MCMC samples plotted: {sample_count}")
+    
+    
+    # Overlay the original predicted line for Lymphocytes and Virus Titer
+    plt.plot(t_new, T_pred, color='blue', linestyle='--', label='Predicted Lymphocytes', linewidth=2)
+    plt.plot(t_new, V_pred, color='red', linestyle='--', label='Predicted Virus Titer', linewidth=2)
+    
+    # Scatter plot for experimental data
+    plt.scatter(t, T_data, color='blue', label='Experimental Lymphocytes $ml^{-1}$ data', zorder=5)
+    plt.scatter(t, V_data, color='red', label='Experimental Virus Titer data', zorder=5)
 
-    plt.scatter(t, np.log10(T_data), color='blue', label='Experimental T data')
-    plt.scatter(t, np.log10(V_data), color='red', label='Experimental V data')
-
-    plt.plot(t, np.log10(T_pred), linestyle='-', color='blue', label='Predicted T')
-    plt.plot(t, np.log10(V_pred), linestyle='-', color='red', label='Predicted V')
-
-    plt.xlabel('Time')
+    # Customize the plot
+    plt.xlabel('Time post CDV infection (days)')
+    plt.ylabel('Concentration')
+    plt.yscale('log')
+    plt.ylim(1e-5, 1e15)
+    plt.title("MCMC Samples: GHP-88309 (7 dpi) (n=3)")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig('purple_one.png')
+
     plt.show()
-    plt.close()
-    
-    print(T_pred)
-    print(V_pred)
-    '''
-    #print(V_data)
-    #boot(V_data, T_data, V_pred, T_pred, initial_guess, y0, t)
-    
+
+
 
 if __name__ == "__main__":
     main()
-
-
-
-    
