@@ -25,7 +25,6 @@ def model(y, t, params):
 
 
 def ssr_basic(pred, true):
-    """Compute the sum of squared residuals between predicted and true values."""
     return np.sum((np.log10(pred) - np.log10(true))**2)
 
 def ssr(params, y0, t, V_data, T_data):
@@ -50,7 +49,6 @@ def ssr(params, y0, t, V_data, T_data):
     return T_sum + V_sum
 
 def ssr_for_mcmc(params, y0, t, V_data, T_data):
-    """Compute the SSR for a set of MCMC parameters."""
     result = odeint(model, y0, t, args=(params,))
     T_pred = result[:, 0]
     V_pred = result[:, 3]
