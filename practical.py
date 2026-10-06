@@ -16,7 +16,7 @@ def model(y, t, params):
     
     return [dTdt, dIdt, dSdt, dVdt]
 
-def generate_data(params, noise_level, t_points, virus_data):
+'''def generate_data(params, noise_level, t_points, virus_data):
     noise = stats.norm.rvs(loc=0, scale=noise_level * virus_data, size=virus_data.shape)
     #noise = np.random.normal(0, noise_level * np.max(virus_data), size=virus_data.shape)
     #noise level * actual data point
@@ -26,19 +26,74 @@ def generate_data(params, noise_level, t_points, virus_data):
     #virua_data + stats.
     #may need to iterate over each point
     #proportiional to actual measuremment
-    return noisy_data
+    return noisy_data'''
 
-def ssr(params, t_points, data):
+'''def generate_data(noise_level, virus_data, syncytia_data):
+    virus_noise = stats.norm.rvs(loc=0, scale=noise_level * virus_data, size=virus_data.shape)
+    syncytia_noise = stats.norm.rvs(loc=0, scale=noise_level * syncytia_data, size=syncytia_data.shape)
+
+    virus_noisy = virus_data + virus_noise
+    syncytia_noisy = syncytia_data + syncytia_noise
+
+    return virus_noisy, syncytia_noisy'''
+
+def generate_data(noise_level, virus_data, syncytia_data):
+    virus_noise = stats.norm.rvs(
+        loc=0,
+        scale=noise_level * np.max(virus_data),
+        size=virus_data.shape
+    )
+
+    syncytia_noise = stats.norm.rvs(
+        loc=0,
+        scale=noise_level * np.max(syncytia_data),
+        size=syncytia_data.shape
+    )
+    #without max
+
+    return virus_data + virus_noise, syncytia_data + syncytia_noise
+
+
+
+'''def ssr(params, t_points, data):
     y0 = [1, 0, 0, 1]
     sol = odeint(model, y0, t_points, args=(params,))
     virus_model = sol[:,3]
-    return np.sum((virus_model - data) ** 2)
+    return np.sum((virus_model - data) ** 2)'''
 
-def fit_params(initial, t_points, data):
-    result = minimize(ssr, initial, args=(t_points, data), method="L-BFGS-B")
+def ssr(params, t_points, virus_data, syncytia_data):
+    y0 = [1, 0, 0, 1]
+    sol = odeint(model, y0, t_points, args=(params,))
+
+    virus_model = sol[:, 3]
+    syncytia_model = sol[:, 2]
+
+    ssr_v = np.sum((virus_model - virus_data) ** 2)
+    ssr_s = np.sum((syncytia_model - syncytia_data) ** 2)
+
+    return ssr_v + ssr_s
+
+
+'''def fit_params(initial, t_points, data):
+    bounds = [(0, None), (0, None), (0, None), (0, None), (0, None), (0, None), (0, None)]
+
+    result = minimize(ssr, initial, args=(t_points, data), method="L-BFGS-B", bounds=bounds)
+    return result.x'''
+
+def fit_params(initial, t_points, virus_data, syncytia_data):
+    bounds = [(0, None)] * len(initial)
+
+    result = minimize(
+        ssr,
+        initial,
+        args=(t_points, virus_data, syncytia_data),
+        method="L-BFGS-B",
+        bounds=bounds
+    )
     return result.x
 
-def are(true_params, noise_level, t_points, n=100):
+
+'''def are(true_params, noise_level, t_points, n=100):
     estimates = []
     y0 = [1, 0, 0, 1]
     sol = odeint(model, y0, t_points, args=(true_params,))
@@ -46,7 +101,14 @@ def are(true_params, noise_level, t_points, n=100):
     virus_data = sol[:,3]
     for i in range (n):
         data = generate_data(true_params, noise_level, t_points, virus_data)
-        est_params = fit_params(true_params, t_points, data)
+        #data = pre_data + np.random.normal(0, 0.01 * pre_data)
+
+
+        initial_guess = true_params * (1 + np.random.normal(0, 0.01, size=true_params.shape))
+        #add noise here
+        est_params = fit_params(initial_guess, t_points, data)
+        
+        #add ~1% noise
         print(est_params)
         # exit()
         estimates.append(est_params)
@@ -55,9 +117,40 @@ def are(true_params, noise_level, t_points, n=100):
     ARE = np.mean(np.abs((true_params - estimates) / true_params), axis=0)
     #ARE = np.mean(np.abs(np.log(estimates) - np.log(true_params)), axis=0)
     #ARE = np.mean((true_params - estimates) / true_params, axis=0)
+    #are = noise --> practically
+    #10x more
+    #separate graphs, boundary lines !*noici
+    #1*noise level (pract) straight line (y=mx+b b=0)
+    #10* (weak)
+    #min noise
+    #separate graphs
 
+    return ARE'''
+
+def are(true_params, noise_level, t_points, n=20):
+    estimates = []
+
+    y0 = [1, 0, 0, 1]
+    sol = odeint(model, y0, t_points, args=(true_params,))
+
+    virus_true = sol[:, 3]
+    syncytia_true = sol[:, 2]
+
+    for i in range(n):
+        print(f"  Noise={noise_level:.2f} | Run {i}/{n}")
+        virus_data, syncytia_data = generate_data(noise_level, virus_true, syncytia_true)
+
+        initial_guess = true_params * (1 + np.random.normal(0, 0.01, size=true_params.shape))
+
+        est_params = fit_params(initial_guess, t_points, virus_data, syncytia_data)
+
+        estimates.append(est_params)
+
+    estimates = np.array(estimates)
+    ARE = np.mean(np.abs((true_params - estimates) / true_params), axis=0)
 
     return ARE
+
 
 
 if __name__ == "__main__":
@@ -150,3 +243,7 @@ if __name__ == "__main__":
 
 
 
+#likelihood: 10 noisy datasets (one graph)
+#5, 10, 20%
+#graph for each parameter for each noise level
+#21 graphs

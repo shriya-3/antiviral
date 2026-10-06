@@ -2,13 +2,54 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # List of CSV file paths (vehicle is now last)
+#file_paths = [
+#    "format_purple_Kfixed1_new.csv",
+#    "format_green_Kfixed.csv",
+#    "format_yellow_Kfixed2_new.csv",
+#    "format_red_Kfixed1_new.csv",
+#    "format_grey_Kfixed1_new.csv"  # Vehicle last
+#]
+
+'''file_paths = [
+    "new_format_purple.csv",
+    "new_format_green.csv",
+    "new_format_yellow.csv",
+    "new_format_red.csv",
+    "new_format_grey.csv" 
+]'''
+
+'''file_paths = [
+    "samecons_format_purple.csv",
+    "samecons_format_green.csv",
+    "samecons_format_yellow.csv",
+    "samecons_format_red.csv",
+    "samecons_format_grey.csv" 
+]'''
+
+'''file_paths = [
+    "boot_purple.csv",
+    "boot_green.csv",
+    "boot_yellow.csv",
+    "boot_red.csv",
+    "boot_grey.csv" 
+]'''
+
+'''file_paths = [
+    "ei_format_purple.csv",
+    "ei_format_green.csv",
+    "samecons_format_yellow.csv",
+    "ei_format_red.csv",
+    "samecons_format_grey.csv" 
+]'''
+
 file_paths = [
-    "format_purple_Kfixed1_new.csv",
-    "format_green_Kfixed.csv",
-    "format_yellow_Kfixed2_new.csv",
-    "format_red_Kfixed1_new.csv",
-    "format_grey_Kfixed1_new.csv"  # Vehicle last
+    "ei_format_purple.csv",
+    "ei_format_green.csv",
+    "samecons_format_yellow.csv",
+    "yellowguess_format_red.csv",
+    "samecons_format_grey.csv" 
 ]
+
 
 # Corresponding names (vehicle last)
 dataset_names = [
@@ -26,17 +67,14 @@ datasets = [pd.read_csv(f).iloc[:, :-1] for f in file_paths]
 colors = ['purple', 'green', 'yellow', 'red', 'teal']
 
 # Extract parameter names (first 6 columns)
-parameter_names = datasets[0].columns
-
+parameter_names = datasets[0].columns[:4]
 # Create 2x3 subplot
-fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+fig, axes = plt.subplots(2, 2, figsize=(10, 6))
 axes = axes.flatten()
 
 # Map for Greek replacements (customize as needed)
 axis_labels = [
-    'λ',
     'β',
-    'k',
     'δ',
     'p',
     'c',

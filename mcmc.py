@@ -13,8 +13,8 @@ global par
 global data
 
 # Load in data
-#virus = np.loadtxt('data/virus_purple.dat')
-#cells = np.loadtxt('data/cells_purple.dat')
+virus = np.loadtxt('data/virus_purple.dat')
+cells = np.loadtxt('data/cells_purple.dat')
 
 #virus = np.loadtxt('data/virus_green.dat')
 #cells = np.loadtxt('data/cells_green2.dat')
@@ -25,36 +25,42 @@ global data
 #virus = np.loadtxt('data/virus_yellow.dat')
 #cells = np.loadtxt('data/cells_yellow2.dat')
 
-virus = np.loadtxt('data/virus_grey.dat')
-cells = np.loadtxt('data/cells_grey2.dat')
+#virus = np.loadtxt('data/virus_grey.dat')
+#cells = np.loadtxt('data/cells_grey2.dat')
 
 vdata = np.log10(virus[:, 1])
 tdata = np.log10(cells[:, 1])
 print(f"data",vdata)
 t = virus[:, 0]
 #K_fixed = 74767840.060099503
-#K_fixed = 4767840.060099503 #PURPLE
+K_fixed = 4767840.060099503 #PURPLE
 #K_fixed = 3123092.42921152 #GREEN
 #K_fixed = 4502249.959989419 #RED
 #K_fixed = 5142701.720558477 #YELLOW
-K_fixed = 5972735.535321577 #GREY
+#K_fixed = 5972735.535321577 #GREY
 
 #K_fixed = 2.46272672e+07
+
+lamb = 0.085
+k = 3.0
 
 # ODE function describing the virus and cell equations
 def model(y, t):
     global par
-    lamb = par[0]
-    beta = par[1]
-    k = par[2]
-    delta = par[3]
-    p = par[4]
-    c = par[5]
-    #K = 4767840.060099503 #PURPLE
+    #lamb = par[0]
+    beta = par[0]
+    #k = par[2]
+    delta = par[1]
+    p = par[2]
+    c = par[3]
+    K = 4767840.060099503 #PURPLE
     #K = 3123092.42921152 #GREEN
     #K = 4502249.959989419 #RED
     #K = 5142701.720558477 #YELLOW
-    K = 5972735.535321577 #GREY
+    #K = 5972735.535321577 #GREY
+
+    lamb = 0.085
+    k = 3.0
 
 
     T, E, I, V = y
@@ -68,17 +74,17 @@ def model(y, t):
     return np.array([dTdt, dEdt, dIdt, dVdt])
 
 # Integrate the ODE function and return the virus
-def solveeqs(lamb, beta, k, delta, p, c, t):#pp):
+def solveeqs(beta, delta, p, c, t):#pp):
     global par
     global data
 
-    fpar=np.power(10,[lamb, beta, k, delta, p, c]) 
+    fpar=np.power(10,[beta, delta, p, c]) 
     par = list(fpar) 
     #par.extend(fpar[:])
     #upd = []
   
     #y=[fpar[-1], 0.0, 0.0, fpar[-2]] 
-    y = [K_fixed, 0.0, 0.0, fpar[-2]] #should this be fpar[-1] or the K value
+    y = [K_fixed, 0.0, 0.0, 1.0] #should this be fpar[-1] or the K value
     ysol = odeint(model, y, t)
     
     #findindex=lambda x:np.where(t==x)[0][0]
@@ -90,6 +96,14 @@ def solveeqs(lamb, beta, k, delta, p, c, t):#pp):
     #Vm=Vmodel[mindex]
 
     return np.array([Tm,Vm])
+
+
+#NEW Initial Guesses
+result = np.log10([5.34848694e-06, 1.00000000e+02, 1.98769229e+01, 1.35770017e+00]) #PURPLE 
+#result = np.log10([5.00455586e-05, 9.99882682e+01, 1.76178104e+01, 2.17512702e+01]) #RED
+#result = np.log10([4.06356553e-04, 1.00000000e+02, 3.10613835e-01, 9.93663321e-01]) #GREEN
+#result = np.log10([1.45794847e-06, 9.99997040e+01, 5.25328929e+01, 8.64861350e-01]) #YELLOW
+#result = np.log10([5.34848694e-06, 1.00000000e+02, 1.98769229e+01, 1.35770017e+00]) #GREY
 
 # This is the initial guess --- you can change this (b,p,c,d,k,v0)
 #result= np.log10([1.35653818e-02, 2.67324539e-06, 4.53607591e+00, 4.26398866e+00, 2.45679026e+00, 1.30694794e+00, 4.37516494e+00, 1.01332200e+13]) 
@@ -124,7 +138,7 @@ def solveeqs(lamb, beta, k, delta, p, c, t):#pp):
 #result = np.log10([4.68045301e-01, 2.45361792e-06, 9.57476446e+01, 2.22159842e+01, 4.59566061e+00, 5.37628973e-01]) #MOST RECENT
 
 #GREY DATASET
-result = np.log10([5.65271052e-01, 9.70303786e-06, 9.72892766e+01, 2.82402642e+02, 1.45084101e+01, 5.60841578e-01]) #GREY
+#result = np.log10([5.65271052e-01, 9.70303786e-06, 9.72892766e+01, 2.82402642e+02, 1.45084101e+01, 5.60841578e-01]) #GREY
 
 
 #result = np.log10([2.15090516e-01, 3.45657502e-05, 1.52896846e+00, 1.69064399e+07, 6.14777220e+06, 9.91326364e+00, 2.99780262e+06]) #GREEN
@@ -136,8 +150,8 @@ result = np.log10([5.65271052e-01, 9.70303786e-06, 9.72892766e+01, 2.82402642e+0
 
 # Define the SSR
 def lnlike(theta, t, tdata, vdata):
-    lamb, beta, k, delta, p, c= theta
-    model = solveeqs(lamb, beta, k, delta, p, c, t)
+    beta, delta, p, c= theta
+    model = solveeqs(beta, delta, p, c, t)
     model = np.log10(model)
     print(model[0])
     x = np.where(np.isnan(model))
@@ -146,13 +160,24 @@ def lnlike(theta, t, tdata, vdata):
 
 # Define the range for all the parameters
 def lnprior(theta):
-    lamb, beta, k, delta, p, c = theta
+    beta, delta, p, c = theta
     #if -4 < lamb < 0 and -8 < beta < -2  and -3 < k < 3 and -3 < delta < 3 and -3 < p < 4 and -3 < c < 2: #PURPLE (MOST RECENT)
+    if -8 < beta < -2  and -3 < delta < 3 and -3 < p < 4 and -3 < c < 2: #PURPLE NEW (MOST RECENT)
+
     #if -3 < lamb < 1 and -5 < beta < -1  and -3 < k < 3 and -3 < delta < 3 and -6 < p < 2 and -3 < c < 2: #RED
     #if -3 < lamb < 1 and -7 < beta < -2  and -3 < k < 4 and -3 < delta < 3 and -3 < p < 3 and -3 < c < 2: #RED (Most recent?)
+    #if  -7 < beta < -2  and -3 < delta < 3 and -3 < p < 3 and -3 < c < 2: #RED NEW (Most recent?)
+
+    
     #if -3 < lamb < 1 and -8 < beta < -2  and -3 < k < 3 and -3 < delta < 3 and -3 < p < 4 and -3 < c < 2: #yellow (Most recent)
+    #if  -8 < beta < -2  and -3 < delta < 3 and -3 < p < 4 and -3 < c < 2: #yellow NEW (Most recent)
+
     #if -6 < lamb < 1 and -8 < beta < -2  and -3 < k < 3 and 1 < delta < 7 and -2 < p < 4 and -3 < c < 2: #GREEN (MOST RECENT)
-    if -3 < lamb < 1 and -6 < beta < -2  and -3 < k < 3 and -3 < delta < 3 and -3 < p < 4 and -3 < c < 2: #GREY (MOST RECENT)
+    #if -8 < beta < -2  and 1 < delta < 7 and -2 < p < 4 and -3 < c < 2: #GREEN NEW (MOST RECENT)
+
+    #if -3 < lamb < 1 and -6 < beta < -2  and -3 < k < 3 and -3 < delta < 3 and -3 < p < 4 and -3 < c < 2: #GREY (MOST RECENT)
+    #if  -6 < beta < -2  and -3 < delta < 3 and -3 < p < 4 and -3 < c < 2: #GREY NEW (MOST RECENT)
+
 
     #if -7 < lamb < -1 and -80 < beta < -74  and -3 < k < 3 and -1 < delta < 6 and 71 < p < 79 and -3 < c < 2 and -3 < K < 3:
         return 0.0
@@ -168,7 +193,7 @@ def lnprob(theta, t, tdata, vdata):
 
 print('Start')
 # You can change the number of walkers (second number)
-ndim, nwalkers = 6, 50
+ndim, nwalkers = 4, 50
 # Sets up all the walkers in a ball around the initial guess
 pos = [(result) + 1e-6*np.random.randn(ndim) for i in range(nwalkers)]
 
@@ -185,13 +210,23 @@ print('Done', samples.shape)
 samples=samples[0::10]
 print(samples.shape)  
 
-fig = corner.corner(samples, labels=["$lamb$", "$beta$", "$k$","$delta$", "$p$", "$c$"],
-                      truths=result, plot_contours="False", bins=[100,100,100,100,100,100])
+fig = corner.corner(samples, labels=["$beta$", "$delta$", "$p$", "$c$"],
+                      truths=result, plot_contours="False", bins=[100,100,100,100])
 #fig.savefig("purple_Kfixed7.png")
 #fig.savefig("green_Kfixed.png")
 #fig.savefig("red_Kfixed_new1.png")
 #fig.savefig("yellow_Kfixed_new2.png")
-fig.savefig("grey_Kfixed1.png")
+#fig.savefig("grey_Kfixed1.png")
+
+fig.suptitle("ERDRP-0519 (3 dpi)", fontsize=16)
+#fig.suptitle("GHP-88309 (7 dpi)", fontsize=16)
+#fig.suptitle("ERDRP-0519 (3 dpi)", fontsize=16)
+
+fig.savefig("new_fig_purple3.png")
+#fig.savefig("new_fig_red2.png")
+#fig.savefig("new_fig_green2.png")
+#fig.savefig("new_fig_yellow2.png")
+#fig.savefig("new_fig_grey2.png")
 
 
 plt.show()
@@ -201,6 +236,10 @@ print('Done')
 
 
 K_fixed_column = np.full((samples.shape[0], 1), np.log10(K_fixed))  # Create a column of log10(K_fixed)
+
+K_col = np.full((samples.shape[0], 1), K_fixed)
+lamb_col = np.full((samples.shape[0], 1), lamb)
+k_col = np.full((samples.shape[0], 1), k)
 #samples = np.hstack((samples, K_fixed_column))  # Append to samples
 #print("Shape of modified samples:", samples.shape)  # Should be (num_samples, 7)
 #np.save('emcee_samples_purple_Kfixed.npy', samples)
@@ -212,7 +251,8 @@ fd.write(str(np.power(10, samples_with_K).tolist()))  # Convert back from log sc
 fd.close()'''
 
 # Ensure `samples_with_K` is properly formatted
-samples_with_K = np.hstack([samples, np.full((samples.shape[0], 1), K_fixed)])
+#samples_with_K = np.hstack([samples, np.full((samples.shape[0], 1), K_fixed)])
+samples_with_params = np.hstack([samples, lamb_col, k_col, K_col])
 
 # Save as CSV directly
 #csv_filename = 'format_purple_Kfixed7.csv'
@@ -221,10 +261,18 @@ samples_with_K = np.hstack([samples, np.full((samples.shape[0], 1), K_fixed)])
 #csv_filename = 'format_purple_Kfixed1_new.csv'
 #csv_filename = 'format_red_Kfixed1_new.csv'
 #csv_filename = 'format_yellow_Kfixed2_new.csv'
-csv_filename = 'format_grey_Kfixed1_new.csv'
+#csv_filename = 'format_grey_Kfixed1_new.csv'
 
-np.savetxt(csv_filename, samples_with_K, delimiter=',',
-           header='lamb, beta, k, delta, p, c, K', comments='')
+csv_filename = 'new_format_purple23.csv'
+#csv_filename = 'new_format_red2.csv'
+#csv_filename = 'new_format_green2.csv'
+#csv_filename = 'new_format_yellow2.csv'
+#csv_filename = 'new_format_grey2.csv'
+
+
+
+np.savetxt(csv_filename, samples_with_para,s, delimiter=',',
+           header='beta, delta, p, c, lamb, k, K', comments='')
 
 print(f"Data saved to {csv_filename}")
 

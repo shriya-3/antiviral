@@ -7,14 +7,17 @@ import pandas as pd
 
 
 def model(y, t, params):
-    K= 4767840.060099503 #PURPLE
+    #K= 4767840.060099503 #PURPLE
     #K = 3123092.42921152 #GREEN
     #K = 4502249.959989419 #RED
     #K = 5142701.720558477 # YELLOW
-    #K = 5972735.535321577 #GREY
+    K = 5972735.535321577 #GREY
 
     T, E, I, V = y
-    lamb, beta, k, delta, p, c  = params
+
+    lamb = 0.085
+    k = 3.0
+    beta, delta, p, c  = params
 
     dTdt = lamb * T * (1 - T / K) - beta * T * V
     dEdt = beta * T * V - k * E
@@ -62,10 +65,10 @@ def ssr_for_mcmc(params, y0, t, V_data, T_data):
 
 
 def main():
-    virus = np.loadtxt('data/virus_purple.dat')
-    cells = np.loadtxt('data/cells_purple.dat')
+    #virus = np.loadtxt('data/virus_purple.dat')
+    #cells = np.loadtxt('data/cells_purple.dat')
 
-    #virus = np.loadtxt('data/virus_green.dat')
+    #irus = np.loadtxt('data/virus_green.dat')
     #cells = np.loadtxt('data/cells_green2.dat')
 
     #virus = np.loadtxt('data/virus_red.dat')
@@ -74,15 +77,23 @@ def main():
     #virus = np.loadtxt('data/virus_yellow.dat')
     #cells = np.loadtxt('data/cells_yellow2.dat')
 
-    #virus = np.loadtxt('data/virus_grey.dat')
-    #cells = np.loadtxt('data/cells_grey2.dat')
+    virus = np.loadtxt('data/virus_grey.dat')
+    cells = np.loadtxt('data/cells_grey2.dat')
 
     V_data = virus[:, 1]
     T_data = cells[:, 1]
     t = virus[:, 0]
 
+    #NEW INITIAL GUESSES
+    #beta, delta, p, c
+    #initial_guess = np.log10([2.15340282e-06, 3.18465532e+01, 9.67901147e+00, 1.31840638e+00]) #purple (ERDRP-0519 3dpi) purple
+    #initial_guess = np.log10([1.71571339e-05, 3.01583306e+01, 2.61835030, 4.06336670]) #red (GHP-88309 3dpi) red
+    #initial_guess = np.log10([3.33848192e-05, 2.75132844e+02, 1.74369880e+01, 1.67546080e+00]) #green (GHP-88309 5dpi) green 
+    #initial_guess = np.log10([2.45361792e-06, 2.22159842e+01, 4.59566061e+00, 5.37628973e-01]) #yellow (GHP-88309 7dpi) yellow
+    initial_guess = np.log10([9.68398003e-06, 2.82016815e+02, 1.45086952e+01, 5.59776275e-01]) #vehicle (grey)
+
     #PURPLE DATASET
-    y0 = [4767840.060099503, 0, 0, 1]  # Initial conditions for purple dataset
+    #y0 = [4767840.060099503, 0, 0, 1]  # Initial conditions for purple dataset
     #initial_guess = np.log10([3.34131606e-03, 7.97858286e-07, 1.61285348e+02, 5.17873197e+00, 
                                #6.14732745e+01, 2.75111791e+01, 3.44613946e+05])   #Purple
     #initial_guess = np.log10([7.24985555e-01, 2.50715804e-08, 2.61706640e+01, 5.24540588e+01, 8.67834551e+03, 1.44740750e+01])
@@ -93,7 +104,9 @@ def main():
     #initial_guess = np.log10([7.17316553e-01, 3.36823860e-04, 7.83678424e-01, 2.00291307e+00, 7.61300436e-03, 8.72944403e-01])
     
     #initial_guess  = np.log10([9.74976275e-02, 2.13536947e-06, 9.34478242e+01, 3.13379594e+01, 9.38060100e+00, 1.29855834e+00])
-    initial_guess = np.log10([9.74976275e-02, 2.13536947e-06, 9.34478242e+01, 3.13379594e+01, 9.92056554e+00, 1.30706746e+00]) #MOST RECENT
+    #initial_guess = np.log10([9.74976275e-02, 2.13536947e-06, 9.34478242e+01, 3.13379594e+01, 9.92056554e+00, 1.30706746e+00]) #MOST RECENT
+    #initial_guess = np.log10([2.13536947e-06, 3.13379594e+01, 9.92056554e+00, 1.30706746e+00]) #MOST RECENT
+
 
     #GREEN DATASET
     #y0 = [3123092.42921152, 0, 0, 1]
@@ -125,7 +138,7 @@ def main():
     #initial_guess = np.log10([1.28412369e-03, 1.38021791e-06, 2.71869278e+02, 1.57844300e+02, 4.43770414e+01, 2.72085443e-01])
 
     #GREY DATASET
-    #y0 = [5972735.535321577, 0, 0, 1]
+    y0 = [5972735.535321577, 0, 0, 1]
     #initial_guess = np.log10([9.74976275e-02, 2.13536947e-06, 9.34478242e+01, 3.13379594e+01, 9.92056554e+00, 1.30706746e+00])
     #initial_guess = np.log10([6.41622613e-02, 2.14293620e-06, 1.10951244e+02, 3.18296531e+01, 1.04259314e+01, 1.26635932e+00])
     #initial_guess = np.log10([6.52013669e-02, 2.13584266e-06, 1.28425088e+02, 3.41105979e+01, 1.10587889e+01, 1.25955490e+00])
@@ -134,7 +147,14 @@ def main():
     #initial_guess = np.log10([2.36379119e-01, 5.37849597e-06, 2.90929667e+00, 2.99263225e+02, 6.13611138e+01, 1.42072123e+00])
     #initial_guess = np.log10([3.47942871e-01, 2.87270668e-06, 1.03655311e+1, 2.54726019e+01, 4.24845402e+00, 5.34303464e-01])
     #initial_guess = np.log10([5.65271052e-01, 9.70303786e-06, 9.72892766e+01, 2.82402642e+02, 1.45084101e+01, 5.60841578e-01]) # last used
-    result = minimize(ssr, initial_guess, args=(y0, t, V_data, T_data), method="Nelder-Mead")
+    
+    #result = minimize(ssr, initial_guess, args=(y0, t, V_data, T_data), method="Nelder-Mead")
+    bounds = [(None, 0), (-5, 2), (-2, 4), (-5, 2)]
+    result = minimize(ssr, initial_guess, args=(y0, t, V_data, T_data), method="Nelder-Mead", bounds=bounds)
+    #beta: none to 0
+    #delta: -5 to 2
+    #p: -2 to 4
+    #c: -5 to 2
     print(f"ssr: {ssr(result.x, y0, t, V_data, T_data)}")
     estimated_params = 10**result.x
     #print(result.x)
@@ -150,10 +170,10 @@ def main():
     
     # Load MCMC parameter samples
     #params_df = pd.read_csv('format_green_Kfixed.csv') #GREEN
-    params_df = pd.read_csv('format_purple_Kfixed1_new.csv') #PURPLE
+    #params_df = pd.read_csv('format_purple_Kfixed1_new.csv') #PURPLE
     #params_df = pd.read_csv('format_red_Kfixed1_new.csv') #RED
     #params_df = pd.read_csv('format_yellow_Kfixed2_new.csv') #YELLOW
-    #params_df = pd.read_csv('format_grey_Kfixed1_new.csv') #GREY
+    params_df = pd.read_csv('new_format_grey2.csv') #GREY
 
     # Arrays to store predictions from all samples
     T_preds_all = []
@@ -186,18 +206,19 @@ def main():
     #ssr_threshold = 15  # Use a fixed threshold for testing
 
     # Plot the MCMC sample lines that are reasonably close to the original predictions
-    plt.figure(figsize=(12, 8))
+    #plt.figure(figsize=(12, 8))
     
-    sorted_indices = np.argsort(ssr_values)
+    #sorted_indices = np.argsort(ssr_values)
 
 # Keep only the best 90%
-    num_to_keep = int(0.9 * len(sorted_indices))
-    best_indices = sorted_indices[:num_to_keep]
+    #num_to_keep = int(0.9 * len(sorted_indices))
+    #best_indices = sorted_indices[:num_to_keep]
 
 # Plot only the best 90%
-    for i in best_indices:
+    '''for i in best_indices:
         plt.plot(t_new, T_preds_all[i], color='blue', alpha=0.1, linewidth=0.1)
         plt.plot(t_new, V_preds_all[i], color='red', alpha=0.1, linewidth=0.1)
+    '''
     #print(f"Number of MCMC samples plotted: {sample_count}")
     
     
@@ -218,7 +239,7 @@ def main():
     plt.yticks(fontsize=15)
     #plt.ylim(1e-1, 1e8) #yellow
     plt.ylim(1e-1, 1e7) 
-    plt.title("ERDRP-0519 (3 dpi)")
+    plt.title("Vehicle (n=3)")
     #plt.legend()
     #plt.legend(prop={'size': 16})
 
